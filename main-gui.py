@@ -21,21 +21,63 @@ def fichier_input():
     fichier_nom = fd.askopenfilename (title="Choisissez un fichier", initialdir='/home/gregoire/Téléchargements/demodeb/', filetypes=filetypes)
     fichier_vartk.set(fichier_nom)
 
+def codepays_validation(*args):
+    label = champs['codepays_check']
+    verif, errorkey = check_code()
+    if not verif:
+        label.config(text=err[errorkey], foreground="red")
+    else:
+        label.config(text="Code pays correct", foreground="green")
+
+# Validation du code pays
+def check_code():
+    code = codepays_vartk.get()
+    if not code:
+        return False, "vide"
+    if not code.isalpha():
+        return False, "alpha"
+    elif len(code) != 2:
+        return False, "taille"
+    else:
+        return True, ""
+
+def check_fichier():
+    fichier_path = fichier_vartk.get()
+    if not fichier_path:
+        return False, "nofile"
+    else:
+        return True, ""
+
 # Traitement du fichier
 def traitement():
-    pays = codepays_vartk.get()
     fichier = Path(fichier_vartk.get())
-    temp = fichier.with_suffix(".tmp")
-    with fichier.open('r', encoding='utf-8') as lecture, temp.open('w', encoding='utf-8') as ecriture:
-        entete = next(lecture)
-        ecriture.write(entete)
-        for ligne in lecture:
-            debut = ligne[0:57]
-            fin = ligne[59:]
-            ecriture.write(debut + pays + fin)
-    os.remove(fichier)
-    os.rename(temp, fichier)
-    showinfo("", "Traitement terminé")
+    verif, errorkey_code = check_code()
+    fic, errorkey_fic = check_fichier()
+    if not verif:
+        showinfo("Erreur", err[errorkey_code])
+    elif not fic:
+        showinfo("Erreur", err[errorkey_fic])
+    else:
+        pays = codepays_vartk.get()
+        temp = fichier.with_suffix(".tmp")
+        with fichier.open('r', encoding='utf-8') as lecture, temp.open('w', encoding='utf-8') as ecriture:
+            entete = next(lecture)
+            ecriture.write(entete)
+            for ligne in lecture:
+                debut = ligne[0:57]
+                fin = ligne[59:]
+                ecriture.write(debut + pays + fin)
+        os.remove(fichier)
+        os.rename(temp, fichier)
+        showinfo("", "Traitement terminé")
+
+# Gestion des erreurs
+err = {
+    "taille": "Le code doit être sur 2 caractères",
+    "alpha": "Le code doit être des lettres",
+    "nofile": "Vous devez choisir un fichier",
+    "vide": "",
+}
 
 # Elements de l'interface utilisateur
 champs = {
@@ -50,39 +92,7 @@ champs = {
 for item in champs.values():
     item.pack(anchor=tk.W, padx=10, pady=5, fill=tk.X)
 
-# Vérifications sur le code pays
-def codepays_validation(*args):
-    code = codepays_vartk.get()
-    label = champs['codepays_check']
-    if not code:
-        label.config(text="", foreground="red")
-    elif not code.isalpha():
-        label.config(text="Lettres uniquement", foreground="red")
-    elif len(code) > 2:
-        label.config(text="Code trop long", foreground="red")
-    elif len(code) < 2:
-        label.config(text="Code trop court", foreground="red")
-    else:
-        label.config(text="Code correct", foreground="green")
-        codepays_vartk.set(code.upper())
-
 # Valider et traiter le fichier
 ttk.Button(text="Traiter", command=traitement).pack(anchor=tk.W, padx=10, pady=5)
 codepays_vartk.trace_add("write", codepays_validation)
 root.mainloop()
-
-# # Demander, définir et vérifier le code pays
-# def pays_input():
-#     while True:
-#         pays_code = input("Code pays d'origine : ")
-#         # pays_code = "FR"
-#         if not pays_code:
-#             print("Pas de code pays !")
-#         elif len(pays_code) > 2:
-#             print("Code pays trop long !")
-#         elif len(pays_code) < 2:
-#             print("Code pays trop court !")
-#         elif not pays_code.isalpha():
-#             print("Lettres uniquement !")
-#         else:
-#             return pays_code.upper()
